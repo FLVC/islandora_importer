@@ -329,6 +329,51 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
     return $this->dc;
   }
 
+  public function escapeSolrValue($string)
+  {
+    $match = array('\\', '+', '-', '&', '|', '!', '(', ')', '{', '}', '[', ']', '^', '~', '*', '?', ':', '"', ';', ' ');
+    $replace = array('\\\\', '\\+', '\\-', '\\&', '\\|', '\\!', '\\(', '\\)', '\\{', '\\}', '\\[', '\\]', '\\^', '\\~', '\\*', '\\?', '\\:', '\\"', '\\;', '\\ ');
+    $string = str_replace($match, $replace, $string);
+     
+    return $string;
+  }
+
+  public function checkMODS($xmlstring) {
+      $error_IID_numbers = '';
+      $iid_count = 0;
+
+      // if there was no xml, this is a dummy MODS, so do not validate
+      if (!isset($this->source['object_info']['xml'])) {
+          return '';
+      }
+
+      $mods_xml = new SimpleXMLElement($xmlstring);
+      if (isset($mods_xml->identifier)) {
+              foreach ($mods_xml->identifier as $identifier) {
+                if (isset($identifier['type'])&&(strcasecmp($identifier['type'], 'IID') == 0)&&(strlen(trim($identifier)) > 0)) {
+                  $iid_count += 1;
+                  $solr_url = "http://localhost:8080/solr/select/?version=2.2&start=0&rows=10&indent=on&fl=PID&wt=json&q=mods_identifier_iid_mls%3A" . urlencode($this->escapeSolrValue(trim($identifier)));
+                  $results = file_get_contents($solr_url);
+                  $solr_results = array();
+                  if (isset($results)) {
+                    $solr_results = json_decode($results, TRUE);
+                    $numfound = $solr_results['response']['numFound'];
+                    if ($numfound > 0) {
+                      $error_IID_numbers = $error_IID_numbers . $identifier . ' ';
+                    }
+                  }
+                }
+              }
+      }
+      if ($iid_count == 0) {
+          return 'Metadata has no IID identifier';
+      }
+      if (strlen($error_IID_numbers) > 0) {
+          return 'The following IID identifiers already exist: ' . $error_IID_numbers;
+      }
+      return '';
+  }
+
   /**
    * Acquire base datastreams structure.
    *
@@ -355,6 +400,22 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
     // Ingest the MODS.
     $obtained_mods = $this->getMODS();
     if ($obtained_mods) {
+      $IID_error = $this->checkMODS($obtained_mods);
+      if (strlen($IID_error) > 0) {
+          // if IID error, set error message and create dummy MODS datastream
+          drupal_set_message(t($IID_error), 'error');
+          $errors[] = array(
+            t($IID_error),
+          );
+          $title = $this->getTitle();
+          $obtained_mods = <<<EOXML
+<mods xmlns:mods="http://www.loc.gov/mods/v3" xmlns="http://www.loc.gov/mods/v3">
+  <titleInfo>
+    <title>$title</title>
+  </titleInfo>
+</mods>
+EOXML;
+      }
       $name = file_create_filename('MODS record.xml', 'public://');
       $files[] = $file = file_save_data($obtained_mods, $name);
       $datastreams[] = array(

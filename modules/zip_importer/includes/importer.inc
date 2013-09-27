@@ -328,14 +328,16 @@ class ZipBatchImportObject extends IslandoraImportObject {
           elseif ($s_xml->getName() == 'record') {
             $this->mods = static::runXSLTransform(array(
                   'input' => $xml,
-                  'xsl' => drupal_get_path('module', 'zip_importer') . '/xsl/MARC21slim2MODS3-4.xsl',
+                  'xsl' => drupal_get_path('module', 'zip_importer') . '/xsl/MARC21slim2MODS3-4_FLVC.xsl',
+                  //'xsl' => drupal_get_path('module', 'zip_importer') . '/xsl/MARC21slim2MODS3-4.xsl',
                 ));
           }
           // DC, transform to MODS and set.
           elseif ($s_xml->getName() == 'dc') {
             $this->mods = static::runXSLTransform(array(
                   'input' => $xml,
-                  'xsl' => drupal_get_path('module', 'zip_importer') . '/xsl/simpleDC2MODS.xsl',
+                  'xsl' => drupal_get_path('module', 'zip_importer') . '/xsl/DC2MODS_FLVC.xsl',
+                  //'xsl' => drupal_get_path('module', 'zip_importer') . '/xsl/simpleDC2MODS.xsl',
                 ));
           }
           // Unrecognized format.
