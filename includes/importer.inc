@@ -409,7 +409,7 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
           );
           $title = $this->getTitle();
           $obtained_mods = <<<EOXML
-<mods xmlns:mods="http://www.loc.gov/mods/v3" xmlns="http://www.loc.gov/mods/v3">
+<mods xmlns="http://www.loc.gov/mods/v3">
   <titleInfo>
     <title>$title</title>
   </titleInfo>
@@ -502,6 +502,14 @@ EOXML;
               $datastreams, $content_models, $relationships, $collection_pid);
 
     $object = islandora_add_object($object);
+
+    // inherit xacml policy from parent collection if it exists
+    $parent_object = islandora_object_load($parent_pid);
+    if ($parent_object['POLICY']) {
+        $object->relationships->add(ISLANDORA_RELS_EXT_URI, 'inheritXacmlFrom', $parent_object, RELS_TYPE_URI);
+        $xacml = new IslandoraXacml($object, $parent_object['POLICY']->content);
+        $xacml->writeBackToFedora();
+    }
 
     foreach ($files as $file) {
       if ($file) {
