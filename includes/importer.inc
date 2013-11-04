@@ -416,6 +416,12 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
 </mods>
 EOXML;
       }
+      if ((isset($this->source['object_info']['xml']))&&(strlen($IID_error) == 0)) {
+          // if incoming xml with no errors then run transform to create purls
+          $copy_mods = $obtained_mods;
+          $purltransform = drupal_get_path('module', 'xml_forms') . '/builder/self_transforms/FLVC_MODS_postprocessing.xsl';
+          $obtained_mods = static::runXSLTransform(array('input' => $copy_mods, 'xsl' => $purltransform)); 
+      }
       $name = file_create_filename('MODS record.xml', 'public://');
       $files[] = $file = file_save_data($obtained_mods, $name);
       $datastreams[] = array(
