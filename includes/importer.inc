@@ -348,6 +348,29 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
       }
 
       $mods_xml = new SimpleXMLElement($xmlstring);
+
+      // check for title
+      if (!isset($mods_xml->titleInfo->title)) {
+          return 'Metadata has no title';
+      }
+
+      // check for owningInstitution
+      $found_owning_inst = FALSE;
+      $namespaces = $mods_xml->getNameSpaces(true);
+      if ((isset($mods_xml->extension))&&(isset($namespaces['flvc']))) {
+          $flvc_entry = $mods_xml->extension->children($namespaces['flvc']);
+          if ((count($flvc_entry) == 1)&&(isset($flvc_entry->flvc))) {
+              $flvc_fields = $flvc_entry->flvc->children($namespaces['flvc']);
+              if (isset($flvc_fields->owningInstitution)&&(strlen($flvc_fields->owningInstitution) > 0)) {
+                  $found_owning_inst = TRUE;
+              }
+          }
+      }
+      if ($found_owning_inst == FALSE) {
+          return 'Metadata has no owningInstitution';
+      }
+
+      //check for IID identifier
       if (isset($mods_xml->identifier)) {
               foreach ($mods_xml->identifier as $identifier) {
                 if (isset($identifier['type'])&&(strcasecmp($identifier['type'], 'IID') == 0)&&(strlen(trim($identifier)) > 0)) {
@@ -408,6 +431,9 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
             t($IID_error),
           );
           $title = $this->getTitle();
+          if (strlen($title) == 0) {
+              $title = pathinfo(reset($this->source['object_info']), PATHINFO_FILENAME);
+          }
           $obtained_mods = <<<EOXML
 <mods xmlns="http://www.loc.gov/mods/v3">
   <titleInfo>
