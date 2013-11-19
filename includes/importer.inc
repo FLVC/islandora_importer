@@ -518,6 +518,10 @@ EOXML;
     $files = array();
 
     $label = $this->getTitle();
+    if (strlen($label) == 0) {
+        $label = pathinfo(reset($this->source['object_info']), PATHINFO_FILENAME);
+    }
+
     $datastreams = $this->getDatastreams($to_return, $files);
     $relationships = array();
 
