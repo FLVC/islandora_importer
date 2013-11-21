@@ -40,7 +40,8 @@ class ZipBatchImporter extends IslandoraBatchImporter {
       $policy = new CollectionPolicy($policy_stream->content);
 
       $cm_options = array();
-      $ns_options = array(NULL => t('Default namespace'));
+      //$ns_options = array(NULL => t('Default namespace'));
+      $ns_options = array();
       foreach ($policy->getContentModels() as $pid => $info) {
         $cm_options[$pid] = array('title' => $info['name']);
 
