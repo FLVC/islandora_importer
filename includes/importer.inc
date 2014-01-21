@@ -355,6 +355,7 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
       }
 
       // check for owningInstitution
+      $owning_institution = '';
       $found_owning_inst = FALSE;
       $namespaces = $mods_xml->getNameSpaces(true);
       if ((isset($mods_xml->extension))&&(isset($namespaces['flvc']))) {
@@ -362,6 +363,7 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
           if ((count($flvc_entry) == 1)&&(isset($flvc_entry->flvc))) {
               $flvc_fields = $flvc_entry->flvc->children($namespaces['flvc']);
               if (isset($flvc_fields->owningInstitution)&&(strlen($flvc_fields->owningInstitution) > 0)) {
+                  $owning_institution = $flvc_fields->owningInstitution;
                   $found_owning_inst = TRUE;
               }
           }
@@ -394,6 +396,32 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
       if (strlen($error_IID_numbers) > 0) {
           return 'The following IID identifiers already exist: ' . $error_IID_numbers;
       }
+
+      // check format of purls
+      $server_error_purls = '';
+      $error_purls = '';
+      foreach ($mods_xml->location as $location) {
+        $url = $location->url;
+        if (isset($location['displayLabel'])&&(strcasecmp($location['displayLabel'], 'purl') == 0)) {
+            if ((strpos($url,'http://purl.flvc.org') === false)&&(strpos($url,'http://purl.fcla.edu') === false)) {
+                $server_error_purls = $server_error_purls . $url . ' ';
+            }
+        }
+        if ((strpos($url,'http://purl.flvc.org') !== false)||(strpos($url,'http://purl.fcla.edu') !== false)) {
+            $purl_id = str_replace('http://purl.flvc.org','',str_replace('http://purl.fcla.edu','',$url));
+            $hoststr = '/' . $owning_institution . '/';
+            if (stripos($purl_id,$hoststr) !== 0) {
+                $error_purls = $error_purls . $url . ' ';
+            }
+        }
+      }
+      if (strlen($server_error_purls) > 0) {
+        return t('The following PURLs have incorrect server names: %badpurls', array('%badpurls' => $server_error_purls));
+      }
+      if (strlen($error_purls) > 0) {
+        return t('Allowable PURL domains are %domains.  The following PURLs have incorrect formats: %badpurls', array('%domains' => $owning_institution, '%badpurls' =>$error_purls));
+      }
+
       return '';
   }
 
