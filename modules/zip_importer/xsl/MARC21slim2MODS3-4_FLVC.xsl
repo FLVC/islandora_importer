@@ -6,9 +6,15 @@
 	<xsl:output encoding="UTF-8" indent="yes" method="xml"/>
 	<xsl:strip-space elements="*"/>
 
+	<!--FLVC version continuation, Islandora project, updates by MDemers
+	
+		v8: (04.2014) added 69x local mappings and "sears" authority as Ind2=8
+		
+		-->
+	
 	<!-- FLVC version, written by Caitlin Nelson for the Islandora project
 		
-		v7: (8-02-2012) edited <dateIssued> fields for de-duping
+		v7: (8-02-2013) edited <dateIssued> fields for de-duping
 		v6: (7-26-2013) corrected 720 name creation
 		v5: (7-17-2013) updated relatedIdentifier to handle (parenthetical) @type
 		v4: (7-11-2013) updated PURL handling
@@ -1955,6 +1961,27 @@ Revision 1.02 - Added Log Comment  2003/03/24 19:37:42  ckeith
 			<xsl:call-template name="createSubGeoFrom662752"/>
 		</xsl:for-each>
 
+		<!--Added 690 - Map to 650. 4.15.2014 MD v8-->
+		<xsl:for-each select="marc:datafield[@tag=690]">
+			<xsl:call-template name="createSubTopFrom650"/>
+		</xsl:for-each>
+		<!--Added rest of 69X locals, just in case. 4.15.2014 MD v8-->
+		<xsl:for-each select="marc:datafield[@tag=691]">
+			<xsl:call-template name="createSubTopFrom651"/>
+		</xsl:for-each>	
+		<xsl:for-each select="marc:datafield[@tag=696]">
+			<xsl:call-template name="createSubTopFrom600"/>
+		</xsl:for-each>	
+		<xsl:for-each select="marc:datafield[@tag=697]">
+			<xsl:call-template name="createSubTopFrom610"/>
+		</xsl:for-each>
+		<xsl:for-each select="marc:datafield[@tag=698]">
+			<xsl:call-template name="createSubTopFrom611"/>
+		</xsl:for-each>
+		<xsl:for-each select="marc:datafield[@tag=699]">
+			<xsl:call-template name="createSubTopFrom630"/>
+		</xsl:for-each>
+		
 		<!-- createClassificationFrom 0XX-->
 		<xsl:for-each select="marc:datafield[@tag='050']">
 			<xsl:call-template name="createClassificationFrom050"/>
@@ -3151,7 +3178,7 @@ Revision 1.02 - Added Log Comment  2003/03/24 19:37:42  ckeith
 	<xsl:template name="subjectAuthority">
 		<xsl:if test="@ind2!=4">
 			<xsl:if test="@ind2!=' '">
-				<xsl:if test="@ind2!=8">
+				
 					<xsl:if test="@ind2!=9">
 						<xsl:attribute name="authority">
 							<xsl:choose>
@@ -3165,10 +3192,12 @@ Revision 1.02 - Added Log Comment  2003/03/24 19:37:42  ckeith
 								<xsl:when test="@ind2=7">
 									<xsl:value-of select="marc:subfield[@code='2']"/>
 								</xsl:when>
+								<!--Added sears. 4.15.14 MD v8-->
+								<xsl:when test="@ind2=8">sears</xsl:when>
 							</xsl:choose>
 						</xsl:attribute>
 					</xsl:if>
-				</xsl:if>
+				
 			</xsl:if>
 		</xsl:if>
 	</xsl:template>
@@ -4108,6 +4137,27 @@ Revision 1.02 - Added Log Comment  2003/03/24 19:37:42  ckeith
 				<xsl:call-template name="createSubGeoFrom662752"/>
 			</xsl:when>
 
+			<!--Added 690 local subject - map to 650. 4.15.2014 MD v8-->
+			<xsl:when test="$sf06a='690'">
+				<xsl:call-template name="createSubTopFrom650"/>
+			</xsl:when>
+			<!--Added rest of 69X locals, just in case. 4.15.2014 MD v8-->
+			<xsl:when test="$sf06a='691'">
+				<xsl:call-template name="createSubTopFrom651"/>
+			</xsl:when>
+			<xsl:when test="$sf06a='696'">
+				<xsl:call-template name="createSubTopFrom600"/>
+			</xsl:when>
+			<xsl:when test="$sf06a='697'">
+				<xsl:call-template name="createSubTopFrom610"/>
+			</xsl:when>
+			<xsl:when test="$sf06a='698'">
+				<xsl:call-template name="createSubTopFrom611"/>
+			</xsl:when>
+			<xsl:when test="$sf06a='699'">
+				<xsl:call-template name="createSubTopFrom630"/>
+			</xsl:when>
+			
 			<!--  location  852 856 -->
 
 			<xsl:when test="$sf06a='852'">
