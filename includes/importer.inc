@@ -363,7 +363,7 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
           if ((count($flvc_entry) == 1)&&(isset($flvc_entry->flvc))) {
               $flvc_fields = $flvc_entry->flvc->children($namespaces['flvc']);
               if (isset($flvc_fields->owningInstitution)&&(strlen($flvc_fields->owningInstitution) > 0)) {
-                  $owning_institution = $flvc_fields->owningInstitution;
+                  $owning_institution = trim($flvc_fields->owningInstitution);
                   $found_owning_inst = TRUE;
               }
           }
