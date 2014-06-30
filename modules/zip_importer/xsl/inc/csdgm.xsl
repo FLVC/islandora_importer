@@ -21,8 +21,7 @@
         <xsl:text>Equidistant Conic</xsl:text>
         <xsl:text>Polyonic</xsl:text>
         <xsl:text>Biplolar Oblique Conic Conformal</xsl:text>
-        <!-- begin CSDGM values http://fgdc.er.usgs.gov/metadata/csdgm/04.html .  Normalized values have removed the underscore 
-character -->
+        <!-- begin CSDGM values http://fgdc.er.usgs.gov/metadata/csdgm/04.html .  Normalized values have removed the underscore character -->
         <xsl:text>Albers_Conical_Equal_Area</xsl:text>
         <xsl:text>Albers Conical Equal Area</xsl:text>
         <xsl:text>Azimuthal_Equidistant</xsl:text>

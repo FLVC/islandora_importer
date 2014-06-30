@@ -229,33 +229,43 @@ class ZipBatchImportObject extends IslandoraImportObject {
    *   - A string containing the detected mimetype of the file.
    */
   protected function determineDSIDAndMimetype($name) {
+    module_load_include('inc', 'islandora', 'includes/utilities');
     // Something like this would be nice to have...  Need a way to indicate
     // primary assets, though...  Think about basic image, where the content
     // model can contain "OBJ" image/jpeg, "TN" image/jpeg and so on...
     static $mime_detect = NULL;
     static $dsids = NULL;
+    $models = (array) $this->source['content_model'];
 
     if ($mime_detect === NULL || $dsids === NULL) {
       $mime_detect = new MimeDetect();
-
-      module_load_include('inc', 'islandora', 'includes/utilities');
-      $models = (array) $this->source['content_model'];
       $dsids = islandora_get_datastreams_requirements_from_models($models);
     }
 
     $mimetype = $mime_detect->getMimetype($name);
-
     $dsid = FALSE;
-    // Determine which stream this should be...  Uses the first matching, as
-    // received from the DC-COMPOSITE.
+    // Determine which stream this should be, Gather together all
+    // non optional datastream ids.
     foreach ($dsids as $ds => $info) {
       if (in_array($mimetype, $info['mime'])) {
-        $dsid = $ds;
-        break;
+        // Remove optional DS by default.
+        if (!$info['optional']) {
+          $dsid[$ds] = $info;
+        }
       }
     }
-
-    return array($dsid, $mimetype);
+    // Fire off to the derivative hook to get the primary DSID's.
+    $hook_output = islandora_invoke_hook_list(ISLANDORA_DERVIATIVE_CREATION_HOOK, $models, array());
+    $source_dsid = FALSE;
+    foreach ($dsid as $arr_key => $key_val) {
+      foreach ($hook_output as $hook_key => $hook_value) {
+        if (isset($hook_output[$hook_key]['source_dsid']) && $hook_output[$hook_key]['source_dsid'] == $dsid[$arr_key]['id']) {
+          // We have a match on source object, this is it.
+          $source_dsid = $hook_output[$hook_key]['source_dsid'];
+        }
+      }
+    }
+    return array($source_dsid, $mimetype);
   }
 
   /**
@@ -305,6 +315,7 @@ class ZipBatchImportObject extends IslandoraImportObject {
             'datastream_file' => file_create_url($file->uri),
             'filename' => $name,
             'control_group' => 'M',
+            'file' => $file,
           ),
         );
       }
@@ -331,7 +342,12 @@ class ZipBatchImportObject extends IslandoraImportObject {
         $this->mods = $xml;
       }
       elseif ($this->isMARC($xml)) {
-        $this->mods = static::runXSLTransform(array('input' => $xml, 'xsl' => self::$MARC2MODS));
+        // If it's a MARC record we need to potentially clean up any collection
+        // wrappers that come out of the XSL output before setting the contents.
+        // As documented, Islandora does not support multiple records within
+        // a single MARC collection wrapper.
+        $transformed_marc = static::runXSLTransform(array('input' => $xml, 'xsl' => self::$MARC2MODS));
+        $this->mods = $this->cleanupMARC($transformed_marc);
       }
       elseif ($this->isDC($xml)) {
         $this->mods = static::runXSLTransform(array('input' => $xml, 'xsl' => self::$DC2MODS));
@@ -387,8 +403,13 @@ EOXML;
    */
   protected function getLabel($dsid, $datastream) {
     $use_filename = variable_get('zip_importer_use_filenames_as_labels', FALSE);
-    $xml_filename = $this->source['object_info']['xml'];
-    $xml = $this->getXML();
+    if (isset($this->source['object_info']['xml'])) {
+      $xml_filename = $this->source['object_info']['xml'];
+      $xml = $this->getXML();
+    }
+    else {
+      return "$dsid datastream";
+    }
     switch ($dsid) {
       case 'MODS':
         // Check if a file was associated with MODS.
@@ -436,7 +457,12 @@ EOXML;
    * Checks if the given file content is actually a MARC document.
    */
   protected function isMARC($xml) {
-    return $this->getLocalNameOfRootElement($xml) == 'record';
+    // We are checking collection here to handle the use case where a collection
+    // wrapper element is present around a singular record. This does not
+    // support multiple MARC records within a collection. This is a case that
+    // Islandora itself does not support.
+    $root_element = $this->getLocalNameOfRootElement($xml);
+    return $root_element == 'record' || $root_element == 'collection';
   }
 
   /**
@@ -465,4 +491,27 @@ EOXML;
     }
   }
 
+  /**
+   * Strips off the collection wrapper from MARC if it exists.
+   *
+   * @param string $mods_xml
+   *   The generated MODS XML from the LOC XSLT.
+   *
+   * @return string
+   *   The cleaned up MODS without the MARC collection wrapper, if it exists.
+   */
+  protected function cleanupMARC($mods_xml) {
+    $dom = new DOMDocument();
+    $dom->loadXML($mods_xml);
+    if ($dom->documentElement->tagName == 'modsCollection') {
+      $new_dom = new DOMDocument('1.0', 'UTF-8');
+      $new_dom->formatOutput = TRUE;
+      $new_node = $new_dom->importNode($dom->getElementsByTagName('mods')->item(0), TRUE);
+      $new_dom->appendChild($new_node);
+      return $new_dom->saveXML();
+    }
+    else {
+      return $mods_xml;
+    }
+  }
 }
