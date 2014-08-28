@@ -598,6 +598,12 @@ class IslandoraImporterBatchObject extends IslandoraBatchObject {
         $xacml->writeBackToFedora();
     }
 
+    foreach ($files as $file) {
+        if ($file) {
+            file_delete($file);
+        }
+    }
+
     return ISLANDORA_BATCH_STATE__DONE;
   }
 
