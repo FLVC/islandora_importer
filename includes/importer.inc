@@ -337,6 +337,13 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
           return '';
       }
 
+      // if parent is an intermediate serial object, do not validate
+/*
+      $parent_object = islandora_object_load($this->parentPid);
+      if (in_array('islandora:intermediateCModel', $parent_object->models)) {
+          return '';
+      }
+*/
       $mods_xml = new SimpleXMLElement($xmlstring);
 
       // check for title
