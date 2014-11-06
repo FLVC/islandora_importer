@@ -21,7 +21,10 @@ interface IslandoraBatchImporterInterface {
   public static function readyForBatch(array &$form_state);
 
   /**
-   * Get the required info to pass into the file parameter of the constructor.
+   * Get the info for the source parameter for the itemClass factory.
+   *
+   * This is also used to populate the file parameter to the Importer's
+   * constructor.
    *
    * @param array $form_state
    *   An array containing the form state (very likely resulting from the
@@ -158,9 +161,9 @@ abstract class IslandoraBatchImporter extends IslandoraBatchPreprocessor impleme
         $collection_policies[$this->parentPid] = new CollectionPolicy($policy_stream->content);
       }
     }
-    if (isset($collection_policy[$this->parentPid])) {
-      $info = $collection_policy[$this->parentPid]->getContentModels();
-      $applicable = array_intersect($info, drupal_map_assoc($item->getContentModels()));
+    if (isset($collection_policies[$this->parentPid])) {
+      $info = $collection_policies[$this->parentPid]->getContentModels();
+      $applicable = array_intersect_key($info, drupal_map_assoc($item->getContentModels()));
       if ($applicable) {
         $first_applicable = reset($applicable);
         $namespace = $first_applicable['namespace'];
@@ -182,7 +185,8 @@ abstract class IslandoraBatchImporter extends IslandoraBatchPreprocessor impleme
       $item = $item_class::getOne($this->file);
       if ($item) {
         $this->parameters['namespace'] = $this->getNamespace($item);
-        $preprocessed[] = $object = new IslandoraImporterBatchObject($this->connection, $item, $this->parameters);
+        $wrapper = $item->getWrapperClass();
+        $preprocessed[] = $object = new $wrapper($this->connection, $item, $this->parameters);
         $object->addRelationships();
         $this->addToDatabase($object, $object->getResources());
       }
@@ -564,6 +568,18 @@ EOXML;
   public function modifyRelationships(AbstractObject $object) {
     $object->models = $this->getContentModels();
   }
+
+  /**
+   * Get the name of the class which wraps this.
+   *
+   * Should be a subclass of IslandoraImporterBatchObject.
+   *
+   * @return string
+   *   The name of class.
+   */
+  public function getWrapperClass() {
+    return 'IslandoraImporterBatchObject';
+  }
 }
 
 class IslandoraImporterBatchObject extends IslandoraBatchObject {
@@ -585,6 +601,11 @@ class IslandoraImporterBatchObject extends IslandoraBatchObject {
   public function batchProcess() {
     $this->label = $this->importerObjectInstance->getTitle();
     list($datastreams, $errors, $files) = $this->importerObjectInstance->getDatastreamInfo();
+    foreach ($files as $file) {
+      $file->status &= ~FILE_STATUS_PERMANENT;
+      file_save($file);
+      file_usage_add($file, 'islandora_batch', 'islandora_batch_object', $this->getBatchId());
+    }
     foreach ($datastreams as $ds) {
       $ds_uri = isset($ds['file']) ?
         $ds['file']->uri :
