@@ -628,6 +628,7 @@ class IslandoraImporterBatchObject extends IslandoraBatchObject {
 
     foreach ($files as $file) {
         if ($file) {
+            file_usage_delete($file, 'islandora_batch', 'islandora_batch_object', $this->getBatchId());
             file_delete($file);
         }
     }
