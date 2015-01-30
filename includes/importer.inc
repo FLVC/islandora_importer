@@ -350,17 +350,23 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
 */
       $mods_xml = new SimpleXMLElement($xmlstring);
 
+      $namespaces = $mods_xml->getNameSpaces(true);
+
       // check for title
-      if (!isset($mods_xml->titleInfo->title)) {
+      $found_title = FALSE;
+      if (isset($mods_xml->titleInfo->title)) {
+          $found_title = TRUE;
+      }
+      if ($found_title == FALSE) {
           return 'Metadata has no title';
       }
 
       // check for owningInstitution
       $owning_institution = '';
       $found_owning_inst = FALSE;
-      $namespaces = $mods_xml->getNameSpaces(true);
-      if ((isset($mods_xml->extension))&&(isset($namespaces['flvc']))) {
-          $flvc_entry = $mods_xml->extension->children($namespaces['flvc']);
+      if (isset($namespaces['flvc'])) {
+        foreach ($mods_xml->extension as $extension) {
+          $flvc_entry = $extension->children($namespaces['flvc']);
           if ((count($flvc_entry) == 1)&&(isset($flvc_entry->flvc))) {
               $flvc_fields = $flvc_entry->flvc->children($namespaces['flvc']);
               if (isset($flvc_fields->owningInstitution)&&(strlen($flvc_fields->owningInstitution) > 0)) {
@@ -368,6 +374,7 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
                   $found_owning_inst = TRUE;
               }
           }
+        }
       }
       if ($found_owning_inst == FALSE) {
           return 'Metadata has no owningInstitution';
