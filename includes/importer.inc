@@ -334,6 +334,7 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
 
   public function checkMODS($xmlstring) {
       $error_IID_numbers = '';
+      $error_IID_badchars = '';
       $iid_count = 0;
 
       // if there was no xml, this is a dummy MODS, so do not validate
@@ -351,6 +352,9 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
       $mods_xml = new SimpleXMLElement($xmlstring);
 
       $namespaces = $mods_xml->getNameSpaces(true);
+      //if (isset($namespaces['mods'])) {
+      //    $mods_xml = $mods_xml->children($namespaces['mods']);
+      //}
 
       // check for title
       $found_title = FALSE;
@@ -385,6 +389,11 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
               foreach ($mods_xml->identifier as $identifier) {
                 if (isset($identifier['type'])&&(strcasecmp($identifier['type'], 'IID') == 0)&&(strlen(trim($identifier)) > 0)) {
                   $iid_count += 1;
+
+                  if (preg_match("/[^A-Za-z0-9_\-()\.]/", trim($identifier))) {
+                    $error_IID_badchars .= trim($identifier) . ' ';
+                  }
+
                   $solr_url = "http://localhost:8080/solr/select/?version=2.2&start=0&rows=10&indent=on&fl=PID&wt=json&q=mods_identifier_iid_mls%3A" . urlencode($this->escapeSolrValue(trim($identifier)));
                   $results = file_get_contents($solr_url);
                   $solr_results = array();
@@ -400,6 +409,9 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
       }
       if ($iid_count == 0) {
           return 'Metadata has no IID identifier';
+      }
+      if (strlen($error_IID_badchars) > 0) {
+          return 'The following IID identifiers have illegal characters (characters can be alphanumeric, underscore, hyphen, period, or parentheses with no spaces):' . $error_IID_badchars;
       }
       if (strlen($error_IID_numbers) > 0) {
           return 'The following IID identifiers already exist: ' . $error_IID_numbers;
