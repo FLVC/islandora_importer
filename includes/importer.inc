@@ -355,6 +355,9 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
       //if (isset($namespaces['mods'])) {
       //    $mods_xml = $mods_xml->children($namespaces['mods']);
       //}
+      //foreach ($namespaces as $found_namespace) {
+      //    drupal_set_message($found_namespace);
+      //}
 
       // check for title
       $found_title = FALSE;
@@ -378,7 +381,13 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
                   $found_owning_inst = TRUE;
               }
           }
+          else {
+              return 'Metadata must have one extension->flvc';
+          }
         }
+      }
+      else {
+          return 'Metadata has no flvc namespace';
       }
       if ($found_owning_inst == FALSE) {
           return 'Metadata has no owningInstitution';
