@@ -7,7 +7,7 @@
 	<xsl:strip-space elements="*"/>
 
 	<!--FLVC version continuation, Islandora project, updates by MDemers
-	
+	   v10: (05.2015) implemented LOC correction of bad frequency placement. 
 		v9: (01.2015) added Ind1 to displayLabel mapping for 520/abstract.
 		v8: (04.2014) added 69x local mappings and "sears" authority as Ind2=8
 		
@@ -913,6 +913,46 @@ Revision 1.02 - Added Log Comment  2003/03/24 19:37:42  ckeith
 					</xsl:call-template>
 				</frequency>
 			</xsl:for-each>
+		
+		<!--	1.67 1.72 updated fixed location issue 201308 1.86	-->
+			
+			<xsl:if test="$typeOf008='SE'">
+				<xsl:for-each select="marc:controlfield[@tag=008]">
+					<xsl:variable name="controlField008-18" select="substring($controlField008,19,1)"/>
+					<xsl:variable name="frequency">
+						<frequency>
+							<xsl:choose>
+								<xsl:when test="$controlField008-18='a'">Annual</xsl:when>
+								<xsl:when test="$controlField008-18='b'">Bimonthly</xsl:when>
+								<xsl:when test="$controlField008-18='c'">Semiweekly</xsl:when>
+								<xsl:when test="$controlField008-18='d'">Daily</xsl:when>
+								<xsl:when test="$controlField008-18='e'">Biweekly</xsl:when>
+								<xsl:when test="$controlField008-18='f'">Semiannual</xsl:when>
+								<xsl:when test="$controlField008-18='g'">Biennial</xsl:when>
+								<xsl:when test="$controlField008-18='h'">Triennial</xsl:when>
+								<xsl:when test="$controlField008-18='i'">Three times a week</xsl:when>
+								<xsl:when test="$controlField008-18='j'">Three times a month</xsl:when>
+								<xsl:when test="$controlField008-18='k'">Continuously updated</xsl:when>
+								<xsl:when test="$controlField008-18='m'">Monthly</xsl:when>
+								<xsl:when test="$controlField008-18='q'">Quarterly</xsl:when>
+								<xsl:when test="$controlField008-18='s'">Semimonthly</xsl:when>
+								<xsl:when test="$controlField008-18='t'">Three times a year</xsl:when>
+								<xsl:when test="$controlField008-18='u'">Unknown</xsl:when>
+								<xsl:when test="$controlField008-18='w'">Weekly</xsl:when>
+								<!-- 1.95 20141219-->
+								<xsl:when test="$controlField008-18=' '">Completely irregular</xsl:when>
+								<xsl:when test="$controlField008-18='#'">Completely irregular</xsl:when>
+								<xsl:otherwise/>
+							</xsl:choose>
+						</frequency>
+					</xsl:variable>
+					<xsl:if test="$frequency!=''">
+						<frequency>
+							<xsl:value-of select="$frequency"/>
+						</frequency>
+					</xsl:if>
+				</xsl:for-each>
+			</xsl:if>
 		</originInfo>
 
 
@@ -986,47 +1026,6 @@ Revision 1.02 - Added Log Comment  2003/03/24 19:37:42  ckeith
 				</dateOther>
 			</originInfo>
 		</xsl:for-each>
-
-
-
-
-		<!--	1.67 1.72	-->
-
-		<xsl:if test="$typeOf008='SE'">
-			<xsl:for-each select="marc:controlfield[@tag=008]">
-				<xsl:variable name="controlField008-18" select="substring($controlField008,19,1)"/>
-				<xsl:variable name="frequency">
-					<frequency>
-						<xsl:choose>
-							<xsl:when test="$controlField008-18='a'">Annual</xsl:when>
-							<xsl:when test="$controlField008-18='b'">Bimonthly</xsl:when>
-							<xsl:when test="$controlField008-18='c'">Semiweekly</xsl:when>
-							<xsl:when test="$controlField008-18='d'">Daily</xsl:when>
-							<xsl:when test="$controlField008-18='e'">Biweekly</xsl:when>
-							<xsl:when test="$controlField008-18='f'">Semiannual</xsl:when>
-							<xsl:when test="$controlField008-18='g'">Biennial</xsl:when>
-							<xsl:when test="$controlField008-18='h'">Triennial</xsl:when>
-							<xsl:when test="$controlField008-18='i'">Three times a week</xsl:when>
-							<xsl:when test="$controlField008-18='j'">Three times a month</xsl:when>
-							<xsl:when test="$controlField008-18='k'">Continuously updated</xsl:when>
-							<xsl:when test="$controlField008-18='m'">Monthly</xsl:when>
-							<xsl:when test="$controlField008-18='q'">Quarterly</xsl:when>
-							<xsl:when test="$controlField008-18='s'">Semimonthly</xsl:when>
-							<xsl:when test="$controlField008-18='t'">Three times a year</xsl:when>
-							<xsl:when test="$controlField008-18='u'">Unknown</xsl:when>
-							<xsl:when test="$controlField008-18='w'">Weekly</xsl:when>
-							<xsl:when test="$controlField008-18='#'">Completely irregular</xsl:when>
-							<xsl:otherwise/>
-						</xsl:choose>
-					</frequency>
-				</xsl:variable>
-				<xsl:if test="$frequency!=''">
-					<frequency>
-						<xsl:value-of select="$frequency"/>
-					</frequency>
-				</xsl:if>
-			</xsl:for-each>
-		</xsl:if>
 
 
 		<xsl:for-each select="marc:datafield[@tag=880]">
@@ -1968,19 +1967,19 @@ Revision 1.02 - Added Log Comment  2003/03/24 19:37:42  ckeith
 		</xsl:for-each>
 		<!--Added rest of 69X locals, just in case. 4.15.2014 MD v8-->
 		<xsl:for-each select="marc:datafield[@tag=691]">
-			<xsl:call-template name="createSubTopFrom651"/>
+			<xsl:call-template name="createSubGeoFrom651"/>
 		</xsl:for-each>	
 		<xsl:for-each select="marc:datafield[@tag=696]">
-			<xsl:call-template name="createSubTopFrom600"/>
+			<xsl:call-template name="createSubNameFrom600"/>
 		</xsl:for-each>	
 		<xsl:for-each select="marc:datafield[@tag=697]">
-			<xsl:call-template name="createSubTopFrom610"/>
+			<xsl:call-template name="createSubNameFrom610"/>
 		</xsl:for-each>
 		<xsl:for-each select="marc:datafield[@tag=698]">
-			<xsl:call-template name="createSubTopFrom611"/>
+			<xsl:call-template name="createSubNameFrom611"/>
 		</xsl:for-each>
 		<xsl:for-each select="marc:datafield[@tag=699]">
-			<xsl:call-template name="createSubTopFrom630"/>
+			<xsl:call-template name="createSubTitleFrom630"/>
 		</xsl:for-each>
 		
 		<!-- createClassificationFrom 0XX-->
@@ -2738,7 +2737,7 @@ Revision 1.02 - Added Log Comment  2003/03/24 19:37:42  ckeith
 				</recordIdentifier>
 			</xsl:for-each>
 
-			<recordOrigin>Converted from MARCXML to MODS v3.4 using MARC21slim2MODS3-4_FLVC.xsl (LOC rev 1.86 / 20130610) (FLVC v7)</recordOrigin>
+			<recordOrigin>Converted from MARCXML to MODS v3.4 using MARC21slim2MODS3-4_FLVC.xsl (LOC rev 1.86 / 20130610) (FLVC v10)</recordOrigin>
 
 			<xsl:for-each select="marc:datafield[@tag=040]/marc:subfield[@code='b']">
 				<languageOfCataloging>
@@ -4144,19 +4143,19 @@ Revision 1.02 - Added Log Comment  2003/03/24 19:37:42  ckeith
 			</xsl:when>
 			<!--Added rest of 69X locals, just in case. 4.15.2014 MD v8-->
 			<xsl:when test="$sf06a='691'">
-				<xsl:call-template name="createSubTopFrom651"/>
+				<xsl:call-template name="createSubGeoFrom651"/>
 			</xsl:when>
 			<xsl:when test="$sf06a='696'">
-				<xsl:call-template name="createSubTopFrom600"/>
+				<xsl:call-template name="createSubNameFrom600"/>
 			</xsl:when>
 			<xsl:when test="$sf06a='697'">
-				<xsl:call-template name="createSubTopFrom610"/>
+				<xsl:call-template name="createSubNameFrom610"/>
 			</xsl:when>
 			<xsl:when test="$sf06a='698'">
-				<xsl:call-template name="createSubTopFrom611"/>
+				<xsl:call-template name="createSubNameFrom611"/>
 			</xsl:when>
 			<xsl:when test="$sf06a='699'">
-				<xsl:call-template name="createSubTopFrom630"/>
+				<xsl:call-template name="createSubTitleFrom630"/>
 			</xsl:when>
 			
 			<!--  location  852 856 -->
