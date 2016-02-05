@@ -178,9 +178,45 @@ class ZipBatchImporter extends IslandoraBatchImporter {
 class ZipBatchImportObject extends IslandoraImportObject {
 
   protected $mods;
-  protected static $MARC2MODS;
-  protected static $DC2MODS;
-  protected static $DWC2DC;
+  protected static $MARC2MODS = '';
+  protected static $DC2MODS = '';
+  protected static $DWC2DC = '';
+  protected static $MADS2DC = '';
+  protected static $transformPath = '';
+
+  /**
+   * Function to initialize the static paths for various xsl.
+   */
+  public static function initializePaths() {
+
+    if (self::$transformPath == '') {
+
+      self::$transformPath = drupal_get_path('module', 'zip_importer') . '/xsl';
+
+      if (self::$MARC2MODS == '') {
+        self::$MARC2MODS = self::$transformPath . "/MARC21slim2MODS3-4.xsl";
+      }
+
+      if (self::$DC2MODS == '') {
+        self::$DC2MODS = self::$transformPath . "/simpleDC2MODS.xsl";
+      }
+
+      if (self::$DWC2DC == '') {
+        self::$DWC2DC = self::$transformPath . "/dwc_to_dc.xsl";
+      }
+
+      if (self::$MADS2DC == '') {
+        self::$MADS2DC = self::$transformPath . "/mads_to_dc.xsl";
+      }
+    }
+  }
+
+  /**
+   * An AbstractObject for use in calling hooks... Should *NOT* be ingested.
+   *
+   * @var
+   */
+  protected $skeleton;
 
   /**
    * Constructor.
@@ -189,10 +225,9 @@ class ZipBatchImportObject extends IslandoraImportObject {
     parent::__construct($source);
     $this->pidNamespace = $this->source['pid_namespace'];
     $this->contentModel = (array) $this->source['content_model'];
-    $transform_path = drupal_get_path('module', 'zip_importer') . '/xsl';
-    self::$MARC2MODS = "$transform_path/MARC21slim2MODS3-4.xsl";
-    self::$DC2MODS = "$transform_path/simpleDC2MODS.xsl";
-    self::$DWC2DC = "$transform_path/dwc_to_dc.xsl";
+    self::initializePaths();
+    $this->skeleton = islandora_get_tuque_connection()->repository->constructObject('temp:pid');
+    $this->skeleton->models = $this->contentModel;
   }
 
   /**
@@ -253,14 +288,26 @@ class ZipBatchImportObject extends IslandoraImportObject {
         }
       }
     }
+
     // Fire off to the derivative hook to get the primary DSID's.
-    $hook_output = islandora_invoke_hook_list(ISLANDORA_DERVIATIVE_CREATION_HOOK, $models, array());
+    $hook_output = islandora_invoke_hook_list(ISLANDORA_DERIVATIVE_CREATION_HOOK, $models, array($this->skeleton));
     $source_dsid = FALSE;
     foreach ($dsid as $arr_key => $key_val) {
       foreach ($hook_output as $hook_key => $hook_value) {
         if (isset($hook_output[$hook_key]['source_dsid']) && $hook_output[$hook_key]['source_dsid'] == $dsid[$arr_key]['id']) {
           // We have a match on source object, this is it.
           $source_dsid = $hook_output[$hook_key]['source_dsid'];
+        }
+      }
+    }
+
+    // Didn't match a primary datastream fallback for supplemental by matching
+    // the first available.
+    if (!$source_dsid) {
+      foreach ($dsids as $datastream => $ds_info) {
+        if (in_array($mimetype, $ds_info['mime'])) {
+          $source_dsid = $ds_info['id'];
+          break;
         }
       }
     }
@@ -286,6 +333,14 @@ class ZipBatchImportObject extends IslandoraImportObject {
           $dsid = 'DWC';
           $mimetype = 'text/xml';
         }
+
+        elseif ($this->isMADS($this->getXML())) {
+          // For MADS file, datastream to MADS and skips the detection.
+          $do_determine_dsid_and_mimetype = FALSE;
+          $dsid = 'MADS';
+          $mimetype = 'text/xml';
+        }
+
         else {
           // XML streams are handled via the parent implementation,
           // (via get_{mods,dc}()) so let's go to the next item.
@@ -313,9 +368,12 @@ class ZipBatchImportObject extends IslandoraImportObject {
 
       $zip = new ZipArchive();
       $zip->open(drupal_realpath($this->source['file']->uri));
-      if ($zip->extractTo(drupal_realpath('public://'), $name)) {
-        $file = new stdClass();
-        $file->uri = "public://$name";
+      if ($stream = $zip->getStream($name)) {
+        $file = file_save_data($stream, "public://" . basename($name));
+        fclose($stream);
+        $file->filename = $name;
+        $file->status &= ~FILE_STATUS_PERMANENT;
+        $file = file_save($file);
         $files[] = $file;
 
         $to_return += array(
@@ -366,6 +424,9 @@ class ZipBatchImportObject extends IslandoraImportObject {
       elseif ($this->isDWC($xml)) {
         $this->mods = static::runXSLTransform(array('input' => $this->getDC(), 'xsl' => self::$DC2MODS));
       }
+      elseif ($this->isMADS($xml)) {
+        $this->mods = static::runXSLTransform(array('input' => $this->getDC(), 'xsl' => self::$DC2MODS));
+      }
       if (empty($this->mods)) {
         // If we do not yet have any XML, create a dumb MODS with just the
         // title, and set it.
@@ -380,6 +441,13 @@ EOXML;
       }
     }
     return $this->mods;
+  }
+
+  /**
+   * Implements the PHP magic method __wakeup.
+   */
+  public function __wakeup() {
+    static::initializePaths();
   }
 
   /**
@@ -398,6 +466,9 @@ EOXML;
       }
       elseif ($this->isDWC($xml)) {
         $this->dc = static::runXSLTransform(array('input' => $xml, 'xsl' => self::$DWC2DC));
+      }
+      elseif ($this->isMADS($xml)) {
+        $this->dc = static::runXSLTransform(array('input' => $xml, 'xsl' => self::$MADS2DC));
       }
       // Otherwise, call the parent implementation (transform from MODS).
       if (empty($this->dc)) {
@@ -427,6 +498,9 @@ EOXML;
       if ($this->isDWC($datastream)) {
         $dsid = 'DWC';
       }
+      elseif ($this->isMADS($datastream)) {
+        $dsid = 'MADS';
+      }
     }
     else {
       return "$dsid datastream";
@@ -449,6 +523,12 @@ EOXML;
         // If it was generated some other way we ignore it.
         $has_filename = $this->isDWC($xml);
         return $use_filename && $has_filename ? $xml_filename : 'Darwin Core Record';
+
+      case "MADS":
+        // Check if a file was associated with MADS.
+        // If it was generated some other way we ignore it.
+        $has_filename = $this->isMADS($xml);
+        return $use_filename && $has_filename ? $xml_filename : 'MADS Record';
 
       default:
         if ($use_filename && isset($datastream['filename'])) {
@@ -504,7 +584,15 @@ EOXML;
    */
   protected function isDWC($xml) {
     $rootdoc = $this->getLocalNameOfRootElement($xml);
-    return (($rootdoc == 'DarwinRecordSet') || ($rootdoc == 'SimpleDarwinRecordSet'));
+    return (($rootdoc == 'DarwinRecordSet') || ($rootdoc == 'SimpleDarwinRecordSet') || ($rootdoc == 'SimpleDarwinRecord'));
+  }
+
+  /**
+   * Checks if the given file content is actually a MADS document.
+   */
+  protected function isMADS($xml) {
+    $rootdoc = $this->getLocalNameOfRootElement($xml);
+    return $rootdoc == 'mads';
   }
 
   /**
