@@ -195,6 +195,18 @@ abstract class IslandoraBatchImporter extends IslandoraBatchPreprocessor impleme
 
     return $preprocessed;
   }
+
+  /**
+   * Indicate if this batch should be ingested immediately after preprocessing.
+   *
+   * @return bool
+   *   Defaults to TRUE to maintain legacy functionality, but individual
+   *   importers may expose as an option to delay the ingest. This is desirable
+   *   to have ingests run in times when the server is idle.
+   */
+  public function ingestImmediately() {
+    return TRUE;
+  }
 }
 
 interface IslandoraImportObjectInterface {
@@ -511,7 +523,7 @@ EOXML;
       $datastreams[] = array(
         'dsid' => 'MODS',
         'label' => 'MODS Record',
-        'mimetype' => 'text/xml',
+        'mimetype' => 'application/xml',
         'control_group' => 'M',
         'datastream_file' => file_create_url($file->uri),
         'file' => $file,
@@ -531,7 +543,7 @@ EOXML;
       $datastreams[] = array(
         'dsid' => 'DC',
         'label' => 'DC Record',
-        'mimetype' => 'text/xml',
+        'mimetype' => 'application/xml',
         'control_group' => 'X',
         'datastream_file' => file_create_url($file->uri),
         'file' => $file,
