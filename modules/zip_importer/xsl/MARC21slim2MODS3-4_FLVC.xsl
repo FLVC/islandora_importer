@@ -1799,7 +1799,7 @@ Revision 1.02 - Added Log Comment  2003/03/24 19:37:42  ckeith
 
 		<!-- 245c 362az 502-585 5XX-->
 
-		<xsl:for-each select="marc:datafield[@tag=245]">
+		<xsl:for-each select="marc:datafield[@tag=245 and marc:subfield[@code='c']]">
 			<xsl:call-template name="createNoteFrom245c"/>
 		</xsl:for-each>
 
