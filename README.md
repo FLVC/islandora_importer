@@ -43,7 +43,7 @@ A. It doesn't. A POLICY datastream will not be applied to objects ingested via Z
 
 Current maintainers:
 
-* [Nick Ruest](https://github.com/ruebot)
+* [Diego Pino](https://github.com/DiegoPino)
 
 ## Development
 

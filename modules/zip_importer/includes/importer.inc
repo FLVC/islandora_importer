@@ -277,7 +277,7 @@ class ZipBatchImportObject extends IslandoraImportObject {
     }
 
     $mimetype = $mime_detect->getMimetype($name);
-    $dsid = FALSE;
+    $dsid = array();
     // Determine which stream this should be, Gather together all
     // non optional datastream ids.
     foreach ($dsids as $ds => $info) {
@@ -331,14 +331,14 @@ class ZipBatchImportObject extends IslandoraImportObject {
           // For Darwin Core file, datastream to DWC and skips the detection.
           $do_determine_dsid_and_mimetype = FALSE;
           $dsid = 'DWC';
-          $mimetype = 'text/xml';
+          $mimetype = 'application/xml';
         }
 
         elseif ($this->isMADS($this->getXML())) {
           // For MADS file, datastream to MADS and skips the detection.
           $do_determine_dsid_and_mimetype = FALSE;
           $dsid = 'MADS';
-          $mimetype = 'text/xml';
+          $mimetype = 'application/xml';
         }
 
         else {
