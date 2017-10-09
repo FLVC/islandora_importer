@@ -196,7 +196,7 @@ class ZipBatchImportObject extends IslandoraImportObject {
 
       if (self::$MARC2MODS == '') {
         //self::$MARC2MODS = self::$transformPath . "/MARC21slim2MODS3-4.xsl";
-        self::$MARC2MODS = self::$transformPath . "/MARC21slim2MODS3-4_FLVC.xsl";
+        self::$MARC2MODS = self::$transformPath . "/MARC21slim2MODS3-6_FLVC.xsl";
       }
 
       if (self::$DC2MODS == '') {

@@ -20,7 +20,9 @@
         
         ********
         
-        This stylesheet will transform Dublin Core to MODS version 3.4.
+        This stylesheet will transform Dublin Core to MODS version 3.6.
+
+        Changed to MODS 3.6  2017-07-23
         
         Based on LOC
         Version 1.1 2012-08-12 WS  
@@ -69,9 +71,9 @@
     </xsl:template>
     
     <xsl:template match="record">
-        <mods version="3.4" xmlns="http://www.loc.gov/mods/v3" 
+        <mods version="3.6" xmlns="http://www.loc.gov/mods/v3" 
             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-            xsi:schemaLocation="http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-4.xsd">
+            xsi:schemaLocation="http://www.loc.gov/mods/v3 http://www.loc.gov/standards/mods/v3/mods-3-6.xsd">
             <xsl:call-template name="dcMain_flvc"/>
         </mods>
     </xsl:template>
