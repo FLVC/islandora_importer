@@ -468,9 +468,11 @@ It was revised by Priscilla Caplan 10/23/2013 to include the following changes:
 	</xsl:template>
 
 	<xsl:template match="mods:language">
+            <xsl:for-each select="mods:languageTerm">
 		<dc:language>
 			<xsl:value-of select="normalize-space(.)"/>
 		</dc:language>
+            </xsl:for-each>
 	</xsl:template>
 
 	<xsl:template match="mods:relatedItem[mods:titleInfo | mods:name | mods:identifier | mods:location]">
