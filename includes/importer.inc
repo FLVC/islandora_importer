@@ -492,6 +492,7 @@ abstract class IslandoraImportObject implements IslandoraImportObjectInterface {
 
     // Ingest the MODS.
     $obtained_mods = $this->getMODS();
+    $IID_error = '';
     if ($obtained_mods) {
       $IID_error = $this->checkMODS($obtained_mods);
       if (strlen($IID_error) > 0) {
@@ -537,6 +538,15 @@ EOXML;
 
     // Ingest the DC second.
     $obtained_dc = $this->getDC();
+    if (strlen($IID_error) > 0) {
+      $new_dc = static::runXSLTransform(array(
+                'xsl' => drupal_get_path('module', 'islandora_importer') . '/xsl/mods_to_dc.xsl',
+                'input' => $obtained_mods,
+              ));
+      if ($new_dc) {
+        $obtained_dc = $new_dc;
+      }
+    }
     if ($obtained_dc) {
       $name = file_create_filename('DC record.xml', 'public://');
       $files[] = $file = file_save_data($obtained_dc, $name);
