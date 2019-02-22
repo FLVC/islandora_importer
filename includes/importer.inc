@@ -657,6 +657,92 @@ class IslandoraImporterBatchObject extends IslandoraBatchObject {
       file_save($file);
       file_usage_add($file, 'islandora_batch', 'islandora_batch_object', $this->getBatchId());
     }
+    $is_video = in_array('islandora:sp_videoCModel', $this->models);
+    $offline_ingest_enabled =  variable_get('zip_importer_offline_ingest_enabled', FALSE);
+    if (($is_video)&&($offline_ingest_enabled)) {
+      $source = variable_get('zip_importer_offline_ingest_package_path_source', 'temporary://');
+      $target = variable_get('zip_importer_offline_ingest_package_path_target', '');
+      $options = variable_get('zip_importer_offline_ingest_options', '');
+      if (substr($source,-1) != '/') $source .= '/';
+      $target = rtrim($target, '/') . '/';
+      $mods_file = null;
+      $obj_file = null;
+      foreach ($datastreams as $ds) {
+        if ($ds['dsid'] == 'MODS') {
+          $mods_file = $ds['file'];
+        }
+        else if ($ds['dsid'] == 'OBJ') {
+          $obj_file = $ds['file'];
+        }
+      }
+      if ($mods_file && $obj_file) {
+        $iid = '';
+        $mods_content = file_get_contents(drupal_realpath($mods_file->uri));
+        $mods_doc = new DOMDocument();
+        $mods_doc->loadXML($mods_content);
+        $mods_xpath = new DOMXPath($mods_doc);
+        $mods_xpath->registerNamespace('m', 'http://www.loc.gov/mods/v3');
+        if ($mods_xpath->evaluate('string(//m:mods/m:identifier[@type="IID"]/text())')) {
+          $iid = $mods_xpath->evaluate('string(//m:mods/m:identifier[@type="IID"]/text())');
+        }
+        else if ($mods_xpath->evaluate('string(//m:mods/m:identifier[@type="iid"]/text())')) {
+          $iid = $mods_xpath->evaluate('string(//m:mods/m:identifier[@type="iid"]/text())');
+        }
+
+        if (strlen($iid) > 0) {
+          global $user;
+          $package_directory = $source . $iid;
+          $rc = file_prepare_directory($package_directory, FILE_CREATE_DIRECTORY);
+          $rc = file_copy($mods_file, $package_directory . '/' . $iid . '.xml', FILE_EXISTS_REPLACE);
+          $rc = file_copy($obj_file, $package_directory . '/' . $obj_file->filename, FILE_EXISTS_REPLACE);
+
+          $collection = islandora_object_load($this->preprocessorParameters['parent_pid']);
+          $owning_inst = islandora_get_namespace($this->id);
+          $manifest = <<<EOXML
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest xmlns="info:flvc/manifest/v1">
+    <contentModel>islandora:sp_videoCModel</contentModel>
+        <owningUser>$user->name</owningUser>
+    <collection>$collection->id</collection>
+    <owningInstitution>$owning_inst</owningInstitution>
+</manifest>
+EOXML;
+          $rc = file_save_data($manifest, $package_directory . '/manifest.xml', FILE_EXISTS_REPLACE);
+          $command = '/usr/bin/scp ' . $options . ' ' . drupal_realpath($package_directory)  . ' ' . $target;
+          if ((strpos($owning_inst,'dev') === false)&&(strlen($source)>0)&&(strlen($target)>0)&&(strlen($options)>0)) {
+            // not on development server - copy files to load server and delete package
+            $execout = array();
+            exec($command, $execout, $execrc);
+            foreach ($execout as $msg) {
+              drupal_set_message($msg);
+            }
+            if ($execrc == 0) {
+              $admin_page = 'admin.' . $_SERVER['SERVER_NAME'];
+              drupal_set_message(t('Successfully exported package @package to offline ingest.  You can view the progress of your package at <a href="http://@admin">@admin</a>.', array(
+                '@package' => $package_name,
+                '@admin' => $admin_page,
+              )));
+            }
+            else {
+              drupal_set_message('Unable to copy package to offline ingest.');
+            } 
+            file_unmanaged_delete_recursive($package_directory);
+          }
+          else {
+            drupal_set_message('Unable to complete offline ingest on development server.  You can view or load package from ' . drupal_realpath($package_directory));
+          }
+
+          foreach ($files as $file) {
+            if ($file) {
+              file_usage_delete($file, 'islandora_batch', 'islandora_batch_object', $this->getBatchId());
+              file_delete($file);
+            }
+          }
+
+          return ISLANDORA_BATCH_STATE__OFFLINE;
+        }
+      }
+    }
     foreach ($datastreams as $ds) {
       $ds_uri = isset($ds['file']) ?
         $ds['file']->uri :
@@ -707,5 +793,27 @@ class IslandoraImporterBatchObject extends IslandoraBatchObject {
         islandora_xacml_editor_apply_parent_policy($this, $parent);
       }
     }
+  }
+
+  public function getIID($mods_file) {
+    $modsiid = '';
+    if ($mods_file == null) return $modsiid;
+    drupal_set_message("in iid");
+
+    //$modscontent = file_get_contents(drupal_realpath($mods_file->uri));
+    drupal_set_message(drupal_realpath($mods_file->uri));
+/*
+    $mods_doc = new DOMDocument();
+    $mods_doc->loadXML($modscontent);
+    $mods_xpath = new DOMXPath($mods_doc);
+    $mods_xpath->registerNamespace('m', 'http://www.loc.gov/mods/v3');
+    if ($mods_xpath->evaluate('string(//m:mods/m:identifier[@type="IID"]/text())')) {
+      $modsiid = $mods_xpath->evaluate('string(//m:mods/m:identifier[@type="IID"]/text())');
+    }
+    else if ($mods_xpath->evaluate('string(//m:mods/m:identifier[@type="iid"]/text())')) {
+      $modsiid = $mods_xpath->evaluate('string(//m:mods/m:identifier[@type="iid"]/text())');
+    }
+*/
+    return $modsiid;
   }
 }
