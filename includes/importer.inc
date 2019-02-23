@@ -705,6 +705,7 @@ class IslandoraImporterBatchObject extends IslandoraBatchObject {
         <owningUser>$user->name</owningUser>
     <collection>$collection->id</collection>
     <owningInstitution>$owning_inst</owningInstitution>
+    <ingestPID>$this->id</ingestPID>
 </manifest>
 EOXML;
           $rc = file_save_data($manifest, $package_directory . '/manifest.xml', FILE_EXISTS_REPLACE);
@@ -717,7 +718,9 @@ EOXML;
               drupal_set_message($msg);
             }
             if ($execrc == 0) {
-              $admin_page = 'admin.' . $_SERVER['SERVER_NAME'];
+              $matches = array();
+              preg_match('/^([^\.]*)/', $_SERVER['SERVER_NAME'], $matches);
+              $admin_page =  $matches[0] . '.admin.digital.flvc.org';
               drupal_set_message(t('Successfully exported package @package to offline ingest.  You can view the progress of your package at <a href="http://@admin">@admin</a>.', array(
                 '@package' => $package_name,
                 '@admin' => $admin_page,
