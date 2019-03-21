@@ -694,7 +694,7 @@ class IslandoraImporterBatchObject extends IslandoraBatchObject {
           $package_directory = $source . $iid;
           $rc = file_prepare_directory($package_directory, FILE_CREATE_DIRECTORY);
           $rc = file_copy($mods_file, $package_directory . '/' . $iid . '.xml', FILE_EXISTS_REPLACE);
-          $rc = file_copy($obj_file, $package_directory . '/' . $obj_file->filename, FILE_EXISTS_REPLACE);
+          $rc = file_copy($obj_file, $package_directory . '/' . drupal_basename($obj_file->filename), FILE_EXISTS_REPLACE);
 
           $collection = islandora_object_load($this->preprocessorParameters['parent_pid']);
           $owning_inst = islandora_get_namespace($this->id);
@@ -722,7 +722,7 @@ EOXML;
               preg_match('/^([^\.]*)/', $_SERVER['SERVER_NAME'], $matches);
               $admin_page =  $matches[0] . '.admin.digital.flvc.org/packages';
               drupal_set_message(t('Successfully exported package @package to offline ingest.  You can view the progress of your package at <a href="https://@admin">@admin</a>.', array(
-                '@package' => $package_name,
+                '@package' => $iid,
                 '@admin' => $admin_page,
               )));
             }
