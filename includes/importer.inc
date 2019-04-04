@@ -688,8 +688,16 @@ class IslandoraImporterBatchObject extends IslandoraBatchObject {
         else if ($mods_xpath->evaluate('string(//m:mods/m:identifier[@type="iid"]/text())')) {
           $iid = $mods_xpath->evaluate('string(//m:mods/m:identifier[@type="iid"]/text())');
         }
+        $owning_inst = '';
+        $mods_xpath->registerNamespace('f', 'info:flvc/manifest/v1');
+        if ($mods_xpath->evaluate('string(//m:mods/m:extension/f:flvc/f:owningInstitution/text())')) {
+          $owning_inst = strtolower($mods_xpath->evaluate('string(//m:mods/m:extension/f:flvc/f:owningInstitution/text())'));
+        }
+        else {
+          $owning_inst = islandora_get_namespace($this->id);
+        }
 
-        if (strlen($iid) > 0) {
+        if ((strlen($iid) > 0)&&(strlen($owning_inst) > 0)) {
           global $user;
           $package_directory = $source . $iid;
           $rc = file_prepare_directory($package_directory, FILE_CREATE_DIRECTORY);
@@ -697,7 +705,6 @@ class IslandoraImporterBatchObject extends IslandoraBatchObject {
           $rc = file_copy($obj_file, $package_directory . '/' . drupal_basename($obj_file->filename), FILE_EXISTS_REPLACE);
 
           $collection = islandora_object_load($this->preprocessorParameters['parent_pid']);
-          $owning_inst = islandora_get_namespace($this->id);
           $manifest = <<<EOXML
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest xmlns="info:flvc/manifest/v1">
