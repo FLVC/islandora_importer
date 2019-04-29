@@ -10,7 +10,8 @@ This module requires the following modules/libraries:
 
 * [Islandora](https://github.com/islandora/islandora)
 * [Tuque](https://github.com/islandora/tuque)
-* [Islandora Basic Collection](https://github.com/Islandora/islandora_solution_pack_collection)
+* [Islandora Basic Collection](https://github.com/islandora/islandora_solution_pack_collection)
+* [Islandora Batch](https://github.com/islandora/islandora_batch)
 
 ## Installation
 
@@ -18,7 +19,7 @@ Install as usual, see [this](https://drupal.org/documentation/install/modules-th
 
 ## Configuration
 
-Select whether or not to 'Use filename as Datastream label' in Administration » Islandora » Zip Importer (admin/islandora/zipimporter).
+Select whether or not to 'Use filename as Datastream label' in Administration » Islandora » Islandora Utility Module >> Zip Importer (admin/islandora/zipimporter).
 
 ![Configuration](https://camo.githubusercontent.com/96bdf5509afc3522ab1302b94a70606a013d79e8/687474703a2f2f692e696d6775722e636f6d2f7a613148706d712e706e67)
 
@@ -43,6 +44,7 @@ A. It doesn't. A POLICY datastream will not be applied to objects ingested via Z
 
 Current maintainers:
 
+* [Adam Vessey](https://github.com/adam-vessey)
 * [Diego Pino](https://github.com/DiegoPino)
 
 ## Development
