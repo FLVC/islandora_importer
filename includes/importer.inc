@@ -717,7 +717,7 @@ class IslandoraImporterBatchObject extends IslandoraBatchObject {
 EOXML;
           $rc = file_save_data($manifest, $package_directory . '/manifest.xml', FILE_EXISTS_REPLACE);
           $command = '/usr/bin/scp ' . $options . ' ' . drupal_realpath($package_directory)  . ' ' . $target;
-          if ((strpos($owning_inst,'dev') === false)&&(strlen($source)>0)&&(strlen($target)>0)&&(strlen($options)>0)) {
+          if ((strpos(islandora_get_namespace($this->id),'dev') === false)&&(strlen($source)>0)&&(strlen($target)>0)&&(strlen($options)>0)) {
             // not on development server - copy files to load server and delete package
             $execout = array();
             exec($command, $execout, $execrc);
