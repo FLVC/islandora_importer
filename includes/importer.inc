@@ -727,7 +727,7 @@ EOXML;
             if ($execrc == 0) {
               $matches = array();
               preg_match('/^([^\.]*)/', $_SERVER['SERVER_NAME'], $matches);
-              $admin_page =  $matches[0] . '.admin.digital.flvc.org/packages';
+              $admin_page =  (strpos($matches[0],'-test') ? $matches[0] : islandora_get_namespace($this->id)) . '.admin.digital.flvc.org/packages';
               drupal_set_message(t('Successfully exported package @package to offline ingest.  You can view the progress of your package at <a href="https://@admin">@admin</a>.', array(
                 '@package' => $iid,
                 '@admin' => $admin_page,
